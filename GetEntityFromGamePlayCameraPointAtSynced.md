@@ -1,24 +1,24 @@
 ---
 for: client
 ---
-## GetEntityFromGamePlayCameraPointAt
+## GetEntityFromGamePlayCameraPointAtSynced
 
 ```lua
-GetEntityFromGamePlayCameraPointAt(EntityType,ingoredEntity)
+GetEntityFromGamePlayCameraPointAtSynced(ingoredEntity)
 ```
 
 ## Snippet Code
+
 ```
 local sin = math.sin
 local cos = math.cos
-local pi = math.pi
-local nowaction = 0
-function GetEntityFromGamePlayCameraPointAt(ingoredEntity) 
+local torad = math.pi / 180
+function GetEntityFromGamePlayCameraPointAtSynced(ingoredEntity) 
     local action = 0
     local distance = 300
     local coordsVector =  GetFinalRenderedCamCoord() ;
     local rotationVectorUnrad = GetFinalRenderedCamRot(2);
-    rotationVector = rotationVectorUnrad * pi / 180
+    rotationVector = rotationVectorUnrad * torad
     local directionVector =  vector3(-sin(rotationVector.z) * cos(rotationVector.x), (cos(rotationVector.z) * cos(rotationVector.x)), sin(rotationVector.x));
     local destination =  coordsVector + directionVector * distance ;
     local playerPed = PlayerPedId()
@@ -37,32 +37,33 @@ function GetEntityFromGamePlayCameraPointAt(ingoredEntity)
        end 
        return result
     end 
-    for i=0,5 do 
-        if nowaction == 0 then 
-            shapeTestId = StartShapeTestLosProbe(destination_temp, destination, 511, ingoredEntity or playerPed, 7)
-            if shapeTestId ~= 0 then 
-                nowaction = 1;
-            end 
-        end 
-        if nowaction == 1 then 
-            local shapeTestResult , hit , endCoords , surfaceNormal , entityHit = GetShapeTestResult(shapeTestId)
-            if (shapeTestResult == 2) then
-                if (hit == 0) then
-                    endCoords = vector3( 0, 0, 0 );
-                else
-                    if (DoesEntityExist(entityHit))  then
-                        return hit, getentitytype(entityHit), entityHit, #(endCoords - destination_temp), surfaceNormal
-                    end
-                    shapeTestId = 0;
-                    nowaction = 0;
-                end
-            elseif (shapeTestResult == 0) then
-                nowaction = 0;
-            end
-        end
-    end
-    return false
+    
+    local shapeTestId = StartExpensiveSynchronousShapeTestLosProbe(destination_temp, destination, 511, ingoredEntity or playerPed, 4)
+    local shapeTestResult , hit , endCoords , surfaceNormal , entityHit = GetShapeTestResult(shapeTestId)
+    local ishit, entitytype, entity, distance, surfaceNormal = hit, getentitytype(entityHit), entityHit, #(endCoords - destination_temp), surfaceNormal
+    return ishit, entitytype, entity, distance, surfaceNormal
 end 
+```
+
+### Example:
+```
+function GetPlayerPedOrVehicle(player)
+  local ped = GetPlayerPed(player)
+  local veh = GetVehiclePedIsIn(ped,false)
+  return veh~=0 and veh or ped
+end
+CreateThread(function()
+    while true do Wait(1000)
+        local hit, entitytype, entity, distance, surfaceNormal = GetEntityFromGamePlayCameraPointAtSynced(GetPlayerPedOrVehicle(PlayerId()))
+        if entity and entitytype ~= "solid" then 
+            DrawLine(GetEntityCoords(PlayerPedId()),GetEntityCoords(entity),255,0,0,255)
+            SetEntityCoords(entity,GetOffsetFromEntityInWorldCoords(GetPlayerPedOrVehicle(PlayerId()),0.0,8.0,0.0))
+            print(entity,distance,surfaceNormal)
+        else print(entity,distance,surfaceNormal)
+
+        end 
+    end 
+end)
 ```
 
 ### Source From

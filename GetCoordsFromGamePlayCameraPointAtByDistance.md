@@ -8,12 +8,16 @@ GetCoordsFromGamePlayCameraPointAtByDistance(distance)
 ```
 
 ## Snippet Code
+
 ```
+local sin = math.sin
+local cos = math.cos
+local torad = math.pi / 180
 function GetCoordsFromGamePlayCameraPointAtByDistance(distance) 
     local distance = distance or 300
     coordsVector =  GetFinalRenderedCamCoord() ;
-    rotationVector =  GetFinalRenderedCamRot(2) * math.pi / 180 ;
-    directionVector =  vector3(-math.sin(rotationVector.z) * math.cos(rotationVector.x), (math.cos(rotationVector.z) * math.cos(rotationVector.x)), math.sin(rotationVector.x));
+    rotationVector =  GetFinalRenderedCamRot(2) * torad;
+    directionVector =  vector3(-sin(rotationVector.z) * cos(rotationVector.x), (cos(rotationVector.z) * cos(rotationVector.x)), sin(rotationVector.x));
     destination =  coordsVector + directionVector * distance ;
     return destination
 end 
