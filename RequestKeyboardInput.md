@@ -11,8 +11,8 @@ RequestKeyboardInput(title, description, maxlength)
 ```
 function RequestKeyboardInput(title, description, maxlength)
     --UpdateOnscreenKeyboard 2 = cancel 1 = enter 0 = normal
-	AddTextEntry("RequestKeyboardInput", title .. " "..description) --Sets the Text above the typing field in the black square
-	DisplayOnscreenKeyboard(1, "RequestKeyboardInput", "", "", "", "", "", maxlength) --Actually calls the Keyboard Input
+    AddTextEntry("RequestKeyboardInput", title .. " "..description)
+    DisplayOnscreenKeyboard(1, "RequestKeyboardInput", "", "", "", "", "", maxlength)
     local p = promise.new()
     CreateThread(function()
         while p do
