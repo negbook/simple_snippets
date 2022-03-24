@@ -4,16 +4,10 @@ for: client
 ## Draw3D
 
 ```lua
-DrawRectangle3DOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-DrawRectangle3D (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-DrawRectangle3DReverseOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-DrawRectangle3DReverse (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-DrawPoly3DOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
-DrawPoly3D (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
-DrawPoly3DReverseOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
-DrawPoly3DReverse (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
+DrawRectangle3D (point1,point2,point3,point4, r, g, b, a, isoutline)
+DrawPoly3D (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a, isoutline)
 DrawSphere3D (x,y,z, radius, r,g,b,a)
-DrawCircle3D (x,y,z, radius, r,g,b,a)
+DrawCircle3D (x,y,z, radius, rotation, r,g,b,a, height)
 DrawLine3D (x1,y1,z1, x2,y2,z2, r, g, b, a)
 DrawPixel3D (x,y,z, r, g, b, a)
 DrawBox3D (center, size, rotation, r, g, b, a)
@@ -23,9 +17,12 @@ DrawText3D (x, y, z, text, size, font, r, g, b, a, isfloating)
 ## Snippet Code
 
 ```
-local function _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, isoutline, isreverse)
+
+local function _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, isoutline)
     DrawPoly(x1,y1,z1,x2,y2,z2, x3,y3,z3, r, g, b, a) -- ABC
     DrawPoly(x3,y3,z3,x4,y4,z4, x1,y1,z1, r, g, b, a) -- CDA
+    DrawPoly(x1,y1,z1,x4,y4,z4, x3,y3,z3, r, g, b, a) -- ACD
+    DrawPoly(x3,y3,z3,x2,y2,z2, x1,y1,z1, r, g, b, a) -- BAC
  
     if isoutline then 
         DrawLine(x1,y1,z1,x2,y2,z2,r,g,b,a*2 ) -- AB
@@ -34,70 +31,60 @@ local function _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b
         DrawLine(x4,y4,z4,x1,y1,z1,r,g,b,a*2 ) -- DA
     end 
 
-    --reverse
-    if isreverse then 
-        DrawPoly(x1,y1,z1,x4,y4,z4, x3,y3,z3, r, g, b, a) -- ACD
+end
+
+function DrawRectangle3D (...)
+    local args = {...}
+    local n = #args
+    if not (n > 8) then 
+        local coords1,coords2,coords3,coords4, r, g, b, a, isoutline = ...
+        x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4 = coords1.x,coords1.y,coords1.z, coords2.x,coords2.y,coords2.z, coords3.x,coords3.y,coords3.z, coords4.x,coords4.y,coords4.z
+        _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, isoutline)
+    else 
+        local x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, isoutline = ...
+        _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, isoutline)
+    end 
+    
+end
+
+function DrawPoly3D(...)
+    local args = {...}
+    local n = #args
+    
+    if not (n > 8) then 
+        local coords1, coords2, coords3, r, g, b, a, isoutline = ...
+        x1,y1,z1, x2,y2,z2 , x3,y3,z3 = coords1.x, coords1.y, coords1.z, coords2.x, coords2.y, coords2.z, coords3.x, coords3.y, coords3.z
+        DrawPoly(x1,y1,z1,x2,y2,z2, x3,y3,z3, r, g, b, a) -- ABC
         DrawPoly(x3,y3,z3,x2,y2,z2, x1,y1,z1, r, g, b, a) -- BAC
-    end 
-end
-
-function DrawRectangle3DOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-    _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, true, false)
-end
-
-function DrawRectangle3D (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-    _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, false, false)
-end
-
-function DrawRectangle3DReverseOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-    _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, true, true)
-end
-
-function DrawRectangle3DReverse (x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-    _drawRectangle3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a, false, true)
-end
-
-local function _drawPoly3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a, isoutline, isreverse)
-    DrawPoly(x1,y1,z1,x2,y2,z2, x3,y3,z3, r, g, b, a) -- ABC
- 
-    if isoutline then 
-        DrawLine(x1,y1,z1,x2,y2,z2,r,g,b,a*2 ) -- AB
-        DrawLine(x2,y2,z2,x3,y3,z3,r,g,b,a*2 ) -- BC
-    end 
-
-    --reverse
-    if isreverse then 
+        if isoutline then 
+            DrawLine(x1,y1,z1,x2,y2,z2,r,g,b,a*2 ) -- AB
+            DrawLine(x2,y2,z2,x3,y3,z3,r,g,b,a*2 ) -- BC
+        end 
+    else 
+        local x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a, isoutline = ...
+        DrawPoly(x1,y1,z1,x2,y2,z2, x3,y3,z3, r, g, b, a) -- ABC
         DrawPoly(x3,y3,z3,x2,y2,z2, x1,y1,z1, r, g, b, a) -- BAC
+        if isoutline then 
+            DrawLine(x1,y1,z1,x2,y2,z2,r,g,b,a*2 ) -- AB
+            DrawLine(x2,y2,z2,x3,y3,z3,r,g,b,a*2 ) -- BC
+        end 
     end 
-end
-
-function DrawPoly3DOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
-    _drawPoly3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a, true, false)
-end
-
-function DrawPoly3D (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
-    _drawPoly3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a, false, false)
-end
-
-function DrawPoly3DReverseOutline (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
-    _drawPoly3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a, true, true)
-end
-
-function DrawPoly3DReverse (x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a)
-    _drawPoly3D(x1,y1,z1, x2,y2,z2 , x3,y3,z3, r, g, b, a, false, true)
+    
 end
 
 
 function DrawSphere3D (x,y,z, radius, r,g,b,a)
-    local _a = a/255
-    DrawSphere(x,y,z, radius, r,g,b,_a)
+    --DrawSphere(x,y,z, radius, r,g,b,_a)
+    DrawMarker(28, x,y,z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, radius, radius, radius, r,g,b,a, false, false, 2, false, false, false, false)
 end 
 
-local _drawCircle = function(x,y,z, radius, r,g,b,a)
-    DrawMarker(1, x,y,z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, radius, radius, 0.1, r,g,b,a, false, false, 2, false, false, false, false)
+local _drawCircle = function(x,y,z, radius, rotation, r,g,b,a, height)
+    DrawMarker(1, x,y,z, 0.0, 0.0, 0.0, rotation.x,rotation.y,rotation.z, radius*2, radius*2, height or 0.1, r,g,b,a, false, false, 2, false, false, false, false)
 end
 
-DrawCircle3D = _drawCircle
+DrawCircle3D = function(x,y,z, radius, rotation, r,g,b,a, height)
+    _drawCircle(x,y,z, radius, rotation, r,g,b,a, height)
+end
 
 function DrawLine3D (x1,y1,z1, x2,y2,z2, r, g, b, a)
     DrawLine(x1,y1,z1,x2,y2,z2,r,g,b,a)
@@ -112,73 +99,94 @@ function DrawBox3D (center, size, rotation, r, g, b, a)
     local w,h,d = size.x, size.y, size.z
     local r,g,b,a = r,g,b,a
     local Pitch, Roll, Yaw = rotation.x, rotation.y, rotation.z --order 2
-    local rad = math.rad 
-    local cos = math.cos
-    local sin = math.sin
-    local cosr = cos(rad(Roll))
-    local sinr = sin(rad(Roll))
-    local cosp = cos(rad(Pitch))
-    local sinp = sin(rad(Pitch))
-    local cosy = cos(rad(Yaw))
-    local siny = sin(rad(Yaw))
-    local x1,y1,z1 = x-w/2, y-h/2, z-d/2
-    local x2,y2,z2 = x+w/2, y-h/2, z-d/2
-    local x3,y3,z3 = x+w/2, y+h/2, z-d/2
-    local x4,y4,z4 = x-w/2, y+h/2, z-d/2
-    local x5,y5,z5 = x-w/2, y-h/2, z+d/2
-    local x6,y6,z6 = x+w/2, y-h/2, z+d/2
-    local x7,y7,z7 = x+w/2, y+h/2, z+d/2
-    local x8,y8,z8 = x-w/2, y+h/2, z+d/2
-
-    -- rotateYaw
-    x1,y1,z1 = x1*cosy-y1*siny, x1*siny+y1*cosy, z1 
-    x2,y2,z2 = x2*cosy-y2*siny, x2*siny+y2*cosy, z2
-    x3,y3,z3 = x3*cosy-y3*siny, x3*siny+y3*cosy, z3
-    x4,y4,z4 = x4*cosy-y4*siny, x4*siny+y4*cosy, z4
-    x5,y5,z5 = x5*cosy-y5*siny, x5*siny+y5*cosy, z5
-    x6,y6,z6 = x6*cosy-y6*siny, x6*siny+y6*cosy, z6
-    x7,y7,z7 = x7*cosy-y7*siny, x7*siny+y7*cosy, z7
-    x8,y8,z8 = x8*cosy-y8*siny, x8*siny+y8*cosy, z8
-    
-    -- rotatePitch
-    x1,y1,z1 = x1, y1*cosp-z1*sinp, z1*cosp+y1*sinp
-    x2,y2,z2 = x2, y2*cosp-z2*sinp, z2*cosp+y2*sinp
-    x3,y3,z3 = x3, y3*cosp-z3*sinp, z3*cosp+y3*sinp
-    x4,y4,z4 = x4, y4*cosp-z4*sinp, z4*cosp+y4*sinp
-    x5,y5,z5 = x5, y5*cosp-z5*sinp, z5*cosp+y5*sinp
-    x6,y6,z6 = x6, y6*cosp-z6*sinp, z6*cosp+y6*sinp
-    x7,y7,z7 = x7, y7*cosp-z7*sinp, z7*cosp+y7*sinp
-    x8,y8,z8 = x8, y8*cosp-z8*sinp, z8*cosp+y8*sinp
-
-    -- rotateRoll
-    x1,y1,z1 = x1*cosr-z1*sinr, y1, z1*cosr+x1*sinr
-    x2,y2,z2 = x2*cosr-z2*sinr, y2, z2*cosr+x2*sinr
-    x3,y3,z3 = x3*cosr-z3*sinr, y3, z3*cosr+x3*sinr
-    x4,y4,z4 = x4*cosr-z4*sinr, y4, z4*cosr+x4*sinr
-    x5,y5,z5 = x5*cosr-z5*sinr, y5, z5*cosr+x5*sinr
-    x6,y6,z6 = x6*cosr-z6*sinr, y6, z6*cosr+x6*sinr
-    x7,y7,z7 = x7*cosr-z7*sinr, y7, z7*cosr+x7*sinr
-    x8,y8,z8 = x8*cosr-z8*sinr, y8, z8*cosr+x8*sinr
-    
-
-    --offset transform
-    x1,y1,z1 = center.x + x1, center.y + y1, center.z + z1
-    x2,y2,z2 = center.x + x2, center.y + y2, center.z + z2
-    x3,y3,z3 = center.x + x3, center.y + y3, center.z + z3
-    x4,y4,z4 = center.x + x4, center.y + y4, center.z + z4
-    x5,y5,z5 = center.x + x5, center.y + y5, center.z + z5
-    x6,y6,z6 = center.x + x6, center.y + y6, center.z + z6
-    x7,y7,z7 = center.x + x7, center.y + y7, center.z + z7
-    x8,y8,z8 = center.x + x8, center.y + y8, center.z + z8
-
-    DrawRectangle3DReverse(x1,y1,z1, x2,y2,z2 , x3,y3,z3, x4,y4,z4, r, g, b, a)
-    DrawRectangle3DReverse(x5,y5,z5, x6,y6,z6 , x7,y7,z7, x8,y8,z8, r, g, b, a)
-    DrawRectangle3DReverse(x1,y1,z1, x5,y5,z5 , x6,y6,z6, x2,y2,z2, r, g, b, a)
-    DrawRectangle3DReverse(x2,y2,z2, x6,y6,z6 , x7,y7,z7, x3,y3,z3, r, g, b, a)
-    DrawRectangle3DReverse(x3,y3,z3, x7,y7,z7 , x8,y8,z8, x4,y4,z4, r, g, b, a)
-    DrawRectangle3DReverse(x4,y4,z4, x8,y8,z8 , x5,y5,z5, x1,y1,z1, r, g, b, a)
-
+    local quaternionXaxis = quat(rotation.x, vector3(1, 0, 0))
+    local quaternionYaxis = quat(rotation.y, vector3(0, 1, 0))
+    local quaternionZaxis = quat(rotation.z, vector3(0, 0, 1))
+    local quaternion = quaternionXaxis * quaternionYaxis * quaternionZaxis
+    local point1 = vector3(x-w/2,y-h/2,z-d/2)
+    local point2 = vector3(x+w/2,y-h/2,z-d/2)
+    local point3 = vector3(x+w/2,y+h/2,z-d/2)
+    local point4 = vector3(x-w/2,y+h/2,z-d/2)
+    local point5 = vector3(x-w/2,y-h/2,z+d/2)
+    local point6 = vector3(x+w/2,y-h/2,z+d/2)
+    local point7 = vector3(x+w/2,y+h/2,z+d/2)
+    local point8 = vector3(x-w/2,y+h/2,z+d/2)
+    point1 = point1 * quaternion + center 
+    point2 = point2 * quaternion + center
+    point3 = point3 * quaternion + center
+    point4 = point4 * quaternion + center
+    point5 = point5 * quaternion + center
+    point6 = point6 * quaternion + center
+    point7 = point7 * quaternion + center
+    point8 = point8 * quaternion + center
+    DrawRectangle3D(point1, point2 , point3, point4, r, g, b, a)
+    DrawRectangle3D(point5, point6 , point7, point8, r, g, b, a)
+    DrawRectangle3D(point1, point5 , point6, point2, r, g, b, a)
+    DrawRectangle3D(point2, point6 , point7, point3, r, g, b, a)
+    DrawRectangle3D(point3, point7 , point8, point4, r, g, b, a)
+    DrawRectangle3D(point4, point8 , point5, point1, r, g, b, a)
 end
+
+function DrawPolygon(coords,vertices,hight,r,g,b,a)
+    local r,g,b,a = r or 255, g or 255, b or 255, a or 255
+    local center = vector3(coords.x, coords.y, coords.z)
+    
+    local pos = coords
+    local rotation= vector3(0.0,0.0,0.0)
+    local points = vertices
+    
+    
+     --draw first edge
+     DrawLine(points[#points].x,points[#points].y,pos.z,points[1].x,points[1].y,pos.z,r,g,b,a)
+     DrawLine(points[#points].x,points[#points].y,pos.z+hight,points[1].x,points[1].y,pos.z+hight,r,g,b,a)
+     DrawLine(points[#points].x,points[#points].y,pos.z,points[#points].x,points[#points].y,pos.z+hight,r,g,b,a)
+     DrawLine(points[1].x,points[1].y,pos.z,points[1].x,points[1].y,pos.z+hight,r,g,b,a)
+     --draw first edge end 
+ 
+     for i=1,#points do
+         local next = i+1
+         if next > #points then next = 1 end
+         DrawLine(points[i].x,points[i].y,pos.z,points[next].x,points[next].y,pos.z,r,g,b,a)
+         DrawLine(points[i].x,points[i].y,pos.z+hight,points[next].x,points[next].y,pos.z+hight,r,g,b,a)
+         DrawLine(points[i].x,points[i].y,pos.z,points[i].x,points[i].y,pos.z+hight,r,g,b,a)
+         DrawLine(points[next].x,points[next].y,pos.z,points[next].x,points[next].y,pos.z+hight,r,g,b,a)
+     end
+ 
+     --also draw first edge with DrawRectangle3DReverseOutline 
+     local point1 = vector3(points[#points].x,points[#points].y,pos.z)
+     local point2 = vector3(points[1].x,points[1].y,pos.z)
+     local point3 = vector3(points[1].x,points[1].y,pos.z+hight)
+     local point4 = vector3(points[#points].x,points[#points].y,pos.z+hight)
+     DrawRectangle3DReverseOutline(point1.x,point1.y,point1.z,point2.x,point2.y,point2.z,point3.x,point3.y,point3.z,point4.x,point4.y,point4.z,r,g,b,a)
+     --end 
+ 
+     for i=1,#points do
+         local next = i+1
+         if next > #points then next = 1 end
+         local point1 = vector3(points[i].x,points[i].y,pos.z)
+         local point2 = vector3(points[next].x,points[next].y,pos.z)
+         local point3 = vector3(points[next].x,points[next].y,pos.z+hight)
+         local point4 = vector3(points[i].x,points[i].y,pos.z+hight)
+         DrawRectangle3DReverseOutline(point1.x,point1.y,point1.z,point2.x,point2.y,point2.z,point3.x,point3.y,point3.z,point4.x,point4.y,point4.z,r,g,b,a)
+     end
+ 
+     --drawbottom and top with DrawPoly3DReverse 
+ 
+     for i=1,#points do
+         local next = i+1
+         if next > #points then next = 1 end
+         local point1 = vector3(points[i].x,points[i].y,pos.z)
+         local point2 = vector3(points[next].x,points[next].y,pos.z)
+         DrawPoly3DReverse(center.x,center.y,center.z,point1.x,point1.y,point1.z,point2.x,point2.y,point2.z,r,g,b,50)
+         DrawPoly3DReverse(center.x,center.y,center.z + hight,point1.x,point1.y,point1.z+ hight,point2.x,point2.y,point2.z+ hight,r,g,b,50)
+     end
+
+
+    
+
+    
+end 
+
 
 function DrawText3D (x, y, z, text, size, font, r, g, b, a, isfloating)
     local coords = vector3(x, y, z)
