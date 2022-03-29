@@ -68,7 +68,9 @@ RegisterNetEvent("nPrefix:RequestServerCallback", function(uuid,...)
 		end 
 	end
 	--sync method
-	TriggerClientEvent("nPrefix:ServerCallbackResultTo:"..uuid,Client,result)
+    if result then
+        TriggerClientEvent("nPrefix:ServerCallbackResultTo:"..uuid,Client,result)
+    end 
 end)
 
 
