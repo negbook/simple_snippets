@@ -27,6 +27,14 @@ TriggerServerCallback =   function(name,cb,...)
 end
 ```
 
+## Example 
+```
+CreateThread(function()
+    TriggerServerCallback("RegisterZone",function(data)
+        print(data)
+    end,1,2,3)
+end)
+```
 ---
 for: server
 ---
@@ -74,4 +82,12 @@ RegisterNetEvent("nPrefix:RequestServerCallback", function(uuid,...)
 end)
 
 
+```
+
+## Example
+```
+RegisterServerCallback("Register",function(source,cb,...)
+	print(...)
+    cb(999)
+end )
 ```
