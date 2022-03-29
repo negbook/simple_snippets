@@ -9,9 +9,9 @@ TriggerServerCallback(name,cb,...)
 
 ## Snippet Code
 ```
-TriggerServerCallback = function(name,cb,...)
+TriggerServerCallback =   function(name,cb,...)
     local p = promise.new() 
-    local uuid = GenByString(name)
+    local uuid = name
     TriggerServerEvent('nPrefix:RequestServerCallback',uuid,...)
     local tempEvent; tempEvent=RegisterNetEvent('nPrefix:ServerCallbackResultTo:'..uuid, function(...)
         local args = {...}
@@ -38,11 +38,10 @@ RegisterServerCallback = function(name,cb)
 
 ## Snippet Code 
 ```
-
 Callbacks = {}
 CurrentIndex = 0
 RegisterServerCallback = function(name,cb)
-	local uuid = GenByString(name)
+	local uuid = name
 	Callbacks[CurrentIndex+1] = {
 		uuid = uuid,
 		callback = cb,
@@ -71,5 +70,6 @@ RegisterNetEvent("nPrefix:RequestServerCallback", function(uuid,...)
 	--sync method
 	TriggerClientEvent("nPrefix:ServerCallbackResultTo:"..uuid,Client,result)
 end)
+
 
 ```
