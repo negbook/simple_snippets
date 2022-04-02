@@ -1,10 +1,13 @@
 ---
 for: shared
 ---
-## TriggerServerCallback
+## Commands
 
 ```lua
-TriggerServerCallback(name,cb,...)
+ClientCommand["cmd"] = function(source,...)
+ServerCommand["cmd"] = function(source,...)
+SharedCommand["cmd"] = function(source,...)
+Command["cmd"] = function(...)
 ```
 
 ## Snippet Code
