@@ -39,8 +39,8 @@ end
 ## Example 
 ```
 CreateThread(function()
-    TriggerServerCallback("Register",function(data)
-        print(data)
+    TriggerServerCallback("Register",function(data,...)
+        print(data,...)
     end,1,2,3)
 end)
 ```
@@ -96,6 +96,6 @@ end)
 ```
 RegisterServerCallback("Register",function(source,cb,...)
 	print(...)
-    cb(999)
+    cb(999,888)
 end )
 ```
