@@ -72,7 +72,7 @@ TriggerClientCallback = function(client,name,cb,...)
             p:reject() 
             RemoveEventHandler(tempEvent)
         else 
-            p:resolve({tonumber(source),...})
+            p:resolve({...})
             RemoveEventHandler(tempEvent)
         end 
     end)
