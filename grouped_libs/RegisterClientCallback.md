@@ -46,8 +46,9 @@ end)
 
 ## Example 
 ```
-RegisterClientCallback("test",function(cb)
-    cb("wow")
+RegisterClientCallback("test",function(cb,...)
+    print(...)
+    cb("wow",888,777)
 end)
 ```
 ---
@@ -94,7 +95,7 @@ end
 CreateThread(function()
     Wait(1000)
     print(TriggerClientCallbackSynced(1,"test",function(...)
-        print(333)
+        print(333,...)
     end))
 
 end)
