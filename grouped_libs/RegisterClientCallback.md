@@ -48,7 +48,7 @@ end)
 ```
 RegisterClientCallback("test",function(cb,...)
     print(...)
-    cb("wow",888,777)
+    cb("wow",888,321)
 end)
 ```
 ---
@@ -96,7 +96,7 @@ CreateThread(function()
     Wait(1000)
     print(TriggerClientCallbackSynced(1,"test",function(...)
         print(333,...)
-    end))
+    end,777,777,444))
 
 end)
 ```
