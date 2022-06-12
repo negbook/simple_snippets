@@ -29,7 +29,7 @@ end
 TriggerServerCallbackSynced = function(name,cb,...)
     local p = promise.new() 
     TriggerServerCallback(name, function(...)
-    	cb(...)
+    	if cb then cb(...) end
         p:resolve({...})
     end, ...)
     return table.unpack(Citizen.Await(p)) 
