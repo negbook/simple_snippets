@@ -82,7 +82,7 @@ end
 TriggerClientCallbackSynced = function(client,name,cb,...)
     local p = promise.new() 
     TriggerClientCallback(client, name, function(...)
-        cb(...)
+        if cb then cb(...) end
         p:resolve({...})
     end, ...)
     return table.unpack(Citizen.Await(p)) 
