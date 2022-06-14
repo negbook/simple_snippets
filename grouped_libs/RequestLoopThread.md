@@ -144,8 +144,6 @@ RequestLoopThread = function(duration)
         end,
         __mode = "kv",
         __newindex=function(t,name,fn) 
-            print('newindex',fn)
-      
             local Kill = function(newduration)
                 DeleteTaskByNameFromLoopGroup(t[name],GetDurationByTaskName(t[name]))
             end 
@@ -157,9 +155,8 @@ RequestLoopThread = function(duration)
             local Check = function()
                 return not not  t[name]
             end 
-            local newobj = function(handle,default)
+            local newobj = function(default)
                 local value = default or 0
-                local hand = handle
                 return function(action,v) 
                     if Check() then  
                         if action == 'get' then 
@@ -179,7 +176,7 @@ RequestLoopThread = function(duration)
                     end 
                 end 
             end
-            local obj = newobj(t[name],duration)
+            local obj = newobj(duration)
             
             rawset(t,name,obj)
             if fn then 
@@ -189,6 +186,7 @@ RequestLoopThread = function(duration)
     )
     return result
 end 
+
 
 ```
 
