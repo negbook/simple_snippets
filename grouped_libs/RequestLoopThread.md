@@ -17,52 +17,39 @@ local task_inner_onupdate = {}
 local threads_total = 0
 local GetThreadsTotal = function() return ("threads_total"..threads_total) end 
 
-local GetDurationByTaskName = function(handle)
+local GetDurationByHandle = function(handle)
     if not handle then return end 
-    for duration,name_list in pairs(loops) do 
-        for i=1,#name_list do 
-            if name_list[i] == handle then 
+    for duration,handles in pairs(loops) do 
+        for i=1,#handles do 
+            if handles[i] == handle then 
                 return duration 
             end 
         end 
     end 
 end 
 
-local GetTaskIndexFromLoopGroup = function(handle,duration)
+local DeleteTaskByHandleFromLoopGroup = function(handle,duration)
     if not handle then return end 
-    local name_list = loops[duration]
-    if name_list then 
-        for idx=1,#name_list do 
-            local v = name_list[idx]
+    local handle_index
+    local handles = loops[duration]
+    if handles then 
+        for idx=1,#handles do 
+            local v = handles[idx]
             if v == handle then 
-                return idx
+                handle_index = idx
+                break
             end 
         end 
     end 
-end 
-
-local DeleteTaskByNameFromLoopGroup = function(handle,duration)
-    if not handle then return end 
-    local task_index = GetTaskIndexFromLoopGroup(handle,duration)
-    if (loops[duration] or e)[task_index] then table.remove(loops[duration],task_index) end 
+    
+    if (loops[duration] or e)[handle_index] then table.remove(loops[duration],handle_index) end 
     if loops[duration] and #loops[duration] == 0 then loops[duration] = nil end 
 
 end 
 
-local deleteTaskAuto = function(handle)
-    if not handle then return end 
-    local duration = GetDurationByTaskName(handle)
-    if duration then DeleteTaskByNameFromLoopGroup(handle,duration) end 
-end 
-
-local isTaskAlive = function(handle)
-    if not handle then return end 
-    return GetDurationByTaskName(handle)
-end 
-
 local updateTask = function(handle,newduration,cb)
     if not handle then return end 
-    local oldduration = GetDurationByTaskName(handle)
+    local oldduration = GetDurationByHandle(handle)
     if oldduration ~= newduration then  
         task_inner_onupdate[handle] = cb 
         return 
@@ -71,48 +58,45 @@ end
 
 
 local createLoopGroup;createLoopGroup = function(duration)
-    CreateThread(function()
-        threads_total = threads_total + 1
-        local actionNames = loops[duration]
-        repeat 
-            Wait(duration)
-            local actNames = actionNames or e 
-            local hasAction = actNames[1]
-            
-            if hasAction then 
+    if loops[duration] == nil then 
+        loops[duration] = {}; 
+        CreateThread(function()
+            threads_total = threads_total + 1
+            local handles = loops[duration]
+            repeat 
+                Wait(duration)
+                local handles = handles or e 
+                local hasAction = handles[1]
                 
-                for i=1,#actNames do 
-                    local handle = actNames[i] 
-                    if handle then 
-                        local action = task[handle]
-                        local task_inner_update = task_inner_onupdate[handle]
-                        if action then 
-                            action(handle)
-                        end 
-                        if task_inner_update then 
-                            task_inner_update(duration)
+                if hasAction then 
+                    
+                    for i=1,#handles do 
+                        local handle = handles[i] 
+                        if handle then 
+                            local action = task[handle]
+                            local task_inner_update = task_inner_onupdate[handle]
+                            if action then 
+                                action(handle)
+                            end 
+                            if task_inner_update then 
+                                task_inner_update(duration)
+                            end 
                         end 
                     end 
                 end 
-            end 
-        until not hasAction
-        threads_total = threads_total - 1
-        return 
-        
-    end) 
+            until not hasAction
+            threads_total = threads_total - 1
+            return 
+        end) 
+    end 
 end 
 
 local takeTaskToNewLoopGroup = function(handle, newduration)
     updateTask(handle,newduration,function()
         task_inner_onupdate[handle] = nil
-        local oldduration = GetDurationByTaskName(handle)
-        --Wait(oldduration)
-
-        if loops[newduration] == nil then 
-            loops[newduration] = {}; 
-            createLoopGroup(newduration)
-        end 
-        DeleteTaskByNameFromLoopGroup(handle,oldduration)
+        local oldduration = GetDurationByHandle(handle)
+        createLoopGroup(newduration)
+        DeleteTaskByHandleFromLoopGroup(handle,oldduration)
         table.insert(loops[newduration],handle)
         
     end)
@@ -121,10 +105,7 @@ end
 local addTask = function(handle,duration,onaction)
     if not handle then return end 
     task[handle] = onaction  
-    if loops[duration] == nil then 
-        loops[duration] = {}; 
-        createLoopGroup(duration)
-    end 
+    createLoopGroup(duration)
     table.insert(loops[duration],handle)
     return handle
 end 
@@ -145,7 +126,7 @@ RequestLoopThread = function(duration)
         __mode = "kv",
         __newindex=function(t,name,fn) 
             local Kill = function(newduration)
-                DeleteTaskByNameFromLoopGroup(t[name],GetDurationByTaskName(t[name]))
+                DeleteTaskByHandleFromLoopGroup(t[name],GetDurationByHandle(t[name]))
             end 
             
             local Set = function(newduration)
@@ -186,8 +167,6 @@ RequestLoopThread = function(duration)
     )
     return result
 end 
-
-
 ```
 
 ## Example 
