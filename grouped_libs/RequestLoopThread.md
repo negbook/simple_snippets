@@ -13,7 +13,8 @@ handle = RequestLoopThread(duration)
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/RequestLoopThread.md
 local e,loops,taskduration,task = {},{},{},{}
 setmetatable(e,{__call = function() end })
-local task_inner_onupdate = {}
+local task_inner_updating = {}
+
 local threads_total = 0
 local GetThreadsTotal = function() return ("threads_total"..threads_total) end 
 
@@ -51,20 +52,23 @@ local updateTask = function(handle,newduration,cb)
     if not handle then return end 
     local oldduration = GetDurationByHandle(handle)
     if oldduration ~= newduration then  
-        task_inner_onupdate[handle] = cb 
+        if not task_inner_updating[oldduration] then task_inner_updating[oldduration] = {} end 
+        task_inner_updating[oldduration][handle] = cb 
         return 
     end 
 end 
 
 
 local createLoopGroup;createLoopGroup = function(duration)
+    local isnew = true
     if loops[duration] == nil then 
         loops[duration] = {}; 
+        isnew = false 
         CreateThread(function()
             threads_total = threads_total + 1
             local handles = loops[duration]
             repeat 
-                Wait(duration)
+                
                 local handles = handles or e 
                 local hasAction = handles[1]
                 
@@ -74,8 +78,8 @@ local createLoopGroup;createLoopGroup = function(duration)
                         local handle = handles[i] 
                         if handle then 
                             local action = task[handle]
-                            local task_inner_update = task_inner_onupdate[handle]
-                            if action then 
+                            local task_inner_update = (task_inner_updating[duration] or e)[handle]
+                            if action and not task_inner_update then 
                                 action(handle)
                             end 
                             if task_inner_update then 
@@ -84,21 +88,26 @@ local createLoopGroup;createLoopGroup = function(duration)
                         end 
                     end 
                 end 
+                Wait(duration)
             until not hasAction
             threads_total = threads_total - 1
             return 
         end) 
     end 
+    return isnew
 end 
 
 local takeTaskToNewLoopGroup = function(handle, newduration)
     updateTask(handle,newduration,function()
-        task_inner_onupdate[handle] = nil
-        local oldduration = GetDurationByHandle(handle)
-        createLoopGroup(newduration)
-        DeleteTaskByHandleFromLoopGroup(handle,oldduration)
-        table.insert(loops[newduration],handle)
         
+        local oldduration = GetDurationByHandle(handle)
+        DeleteTaskByHandleFromLoopGroup(handle,oldduration)
+        if createLoopGroup(newduration) then 
+            Wait(oldduration)
+        end 
+        task_inner_updating[oldduration][handle] = nil
+        table.insert(loops[newduration],handle)
+         
     end)
 end 
 
@@ -107,7 +116,6 @@ local addTask = function(handle,duration,onaction)
     task[handle] = onaction  
     createLoopGroup(duration)
     table.insert(loops[duration],handle)
-    return handle
 end 
 
 RequestLoopThread = function(duration)
