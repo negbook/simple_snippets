@@ -9,9 +9,11 @@ handle = RequestLoopThread(duration)
 
 ## Snippet Code
 ```
+--Credit: negbook
+--https://github.com/negbook/simple_snippets/blob/main/grouped_libs/RequestLoopThread.md
 local e,loops,taskduration,task = {},{},{},{}
+setmetatable(e,{__call = function() end })
 local task_inner_onupdate = {}
-local task_inner_identity = {}
 local threads_total = 0
 local GetThreadsTotal = function() return ("threads_total"..threads_total) end 
 
@@ -85,7 +87,7 @@ local createLoopGroup;createLoopGroup = function(duration)
                         local action = task[handle]
                         local task_inner_update = task_inner_onupdate[handle]
                         if action then 
-                            action((((task_inner_identity or e)[duration] or e)[handle] or e))
+                            action(handle)
                         end 
                         if task_inner_update then 
                             task_inner_update(duration)
@@ -98,6 +100,22 @@ local createLoopGroup;createLoopGroup = function(duration)
         return 
         
     end) 
+end 
+
+local takeTaskToNewLoopGroup = function(handle, newduration)
+    updateTask(handle,newduration,function()
+        task_inner_onupdate[handle] = nil
+        local oldduration = GetDurationByTaskName(handle)
+        --Wait(oldduration)
+
+        if loops[newduration] == nil then 
+            loops[newduration] = {}; 
+            createLoopGroup(newduration)
+        end 
+        DeleteTaskByNameFromLoopGroup(handle,oldduration)
+        table.insert(loops[newduration],handle)
+        
+    end)
 end 
 
 local addTask = function(handle,duration,onaction)
@@ -124,54 +142,47 @@ RequestLoopThread = function(duration)
             end 
             return "This handle has "..idx .." tasks: "..table.concat(tasks,",")
         end,
+        __mode = "kv",
         __newindex=function(t,name,fn) 
-            if not fn then print('wtf') end 
-            local Set 
-            local Kill = function()
+            print('newindex',fn)
+      
+            local Kill = function(newduration)
                 DeleteTaskByNameFromLoopGroup(t[name],GetDurationByTaskName(t[name]))
-                rawset(t,name,nil)
-            end
+            end 
             
-            local newobj = function(default)
+            local Set = function(newduration)
+                takeTaskToNewLoopGroup(t[name],newduration)
+            end 
+
+            local Check = function()
+                return not not  t[name]
+            end 
+            local newobj = function(handle,default)
                 local value = default or 0
+                local hand = handle
                 return function(action,v) 
-                    if action == 'get' then 
-                        if v then 
-                            return value 
-                        else
-                            return value  
+                    if Check() then  
+                        if action == 'get' then 
+                            if v then 
+                                return value or 0
+                            else
+                                return value or 0
+                            end 
+                        elseif action == 'set' then 
+                            if value ~= v then 
+                                value = v 
+                                Set(v)
+                            end 
+                        elseif action == 'kill' or action == 'break' then 
+                            Kill()
                         end 
-                    elseif action == 'set' then 
-                        if value ~= v then 
-                            value = v 
-                            Set(v)
-                        end 
-                    elseif action == 'kill' or action == 'break' then 
-                        Kill()
                     end 
                 end 
             end
-            local obj = newobj(duration)
-            Set = function(newduration)
-                updateTask(t[name],newduration,function()
-                    task_inner_onupdate[t[name]] = nil
-                    local oldduration = GetDurationByTaskName(t[name])
-                    --Wait(oldduration)
-                    if not task_inner_identity[newduration] then task_inner_identity[newduration] = {} end 
-                    task_inner_identity[newduration][t[name]] = obj 
-                    if loops[newduration] == nil then 
-                        loops[newduration] = {}; 
-                        createLoopGroup(newduration)
-                    end 
-                    DeleteTaskByNameFromLoopGroup(t[name],oldduration)
-                    table.insert(loops[newduration],t[name])
-                    
-                end)
-            end
+            local obj = newobj(t[name],duration)
+            
             rawset(t,name,obj)
             if fn then 
-                if not task_inner_identity[duration] then task_inner_identity[duration] = {} end 
-                task_inner_identity[duration][t[name]] = obj
                 addTask(t[name],duration,fn) 
             end 
         end}
