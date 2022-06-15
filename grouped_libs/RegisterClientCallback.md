@@ -62,7 +62,7 @@ TriggerClientCallback = function(client,name,cb,...)
 
 ## Snippet Code 
 ```
-TriggerClientCallback = function(client,name,cb,...)
+TriggerClientCallback = function(name,client,cb,...)
     local p = promise.new() 
     local uuid = name
     TriggerClientEvent("n"..GetCurrentResourceName()..':RequestClientCallback'..client,client,uuid,...)
@@ -79,9 +79,9 @@ TriggerClientCallback = function(client,name,cb,...)
     cb(table.unpack(Citizen.Await(p)))
 end
 
-TriggerClientCallbackSynced = function(client,name,cb,...)
+TriggerClientCallbackSynced = function(name,client,cb,...)
     local p = promise.new() 
-    TriggerClientCallback(client, name, function(...)
+    TriggerClientCallback(name,client, function(...)
         if cb then cb(...) end
         p:resolve({...})
     end, ...)
