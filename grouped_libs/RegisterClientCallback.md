@@ -24,14 +24,14 @@ RegisterClientCallback = function(name,cb)
     return uuid
 end
 
-RegisterNetEvent("n"..GetCurrentResourceName()..':RequestClientCallback', function(uuid,...)
+RegisterNetEvent("n"..GetCurrentResourceName()..':RequestClientCallback'..GetPlayerServerId(PlayerId()), function(uuid,...)
     local result
     local args = {...}
     for i,v in pairs(Callbacks) do 
         if v.uuid == uuid then 
             result = v.callback(function(...)
                 --cb method
-                TriggerServerEvent("n"..GetCurrentResourceName()..':ClientCallbackResultTo:'..uuid,...)
+                TriggerServerEvent("n"..GetCurrentResourceName()..':ClientCallbackResultTo:'..uuid..GetPlayerServerId(PlayerId()),...)
             end,table.unpack(args))
             
             break
@@ -65,8 +65,8 @@ TriggerClientCallback = function(client,name,cb,...)
 TriggerClientCallback = function(client,name,cb,...)
     local p = promise.new() 
     local uuid = name
-    TriggerClientEvent("n"..GetCurrentResourceName()..':RequestClientCallback',client,uuid,...)
-    local tempEvent; tempEvent=RegisterNetEvent("n"..GetCurrentResourceName()..':ClientCallbackResultTo:'..uuid, function(...)
+    TriggerClientEvent("n"..GetCurrentResourceName()..':RequestClientCallback'..client,client,uuid,...)
+    local tempEvent; tempEvent=RegisterNetEvent("n"..GetCurrentResourceName()..':ClientCallbackResultTo:'..uuid..client, function(...)
         local args = {...}
         if args[1] == nil or tonumber(client) ~= tonumber(source) then 
             p:reject() 
