@@ -12,6 +12,7 @@ handle = RequestLoopThread(duration)
 --Credit: negbook
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/RequestLoopThread.md
 local e,loops,taskduration,task = {},{},{},{}
+setmetatable(loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index = function(t,k) return rawget(t,tostring(k)) end })
 setmetatable(e,{__call = function() end })
 local task_inner_updating = {}
 
@@ -29,7 +30,7 @@ local GetDurationByHandle = function(handle)
     end 
 end 
 
-local DeleteTaskByHandleFromLoopGroup = function(handle,duration)
+local DeleteTaskHandleFromLoopGroup = function(handle,duration)
     if not handle then return end 
     local handle_index
     local handles = loops[duration]
@@ -60,21 +61,19 @@ end
 
 
 local createLoopGroup;createLoopGroup = function(duration)
-    local isnew = true
+
     if loops[duration] == nil then 
         loops[duration] = {}; 
-        isnew = false 
+        
         CreateThread(function()
             threads_total = threads_total + 1
             local handles = loops[duration]
             repeat 
-                
+                local runtask = false 
                 local handles = handles or e 
-                local hasAction = handles[1]
-                
-                if hasAction then 
-                    
+                if handles then 
                     for i=1,#handles do 
+                        runtask = true 
                         local handle = handles[i] 
                         if handle then 
                             local action = task[handle]
@@ -89,24 +88,24 @@ local createLoopGroup;createLoopGroup = function(duration)
                     end 
                 end 
                 Wait(duration)
-            until not hasAction
+            until not runtask
             threads_total = threads_total - 1
             return 
         end) 
     end 
-    return isnew
+  
 end 
 
-local takeTaskToNewLoopGroup = function(handle, newduration)
+local TaskHandleJoinNewLoopGroup = function(handle, newduration)
     updateTask(handle,newduration,function()
         
         local oldduration = GetDurationByHandle(handle)
-        DeleteTaskByHandleFromLoopGroup(handle,oldduration)
-        if createLoopGroup(newduration) then 
-            Wait(oldduration)
-        end 
-        task_inner_updating[oldduration][handle] = nil
+        DeleteTaskHandleFromLoopGroup(handle,oldduration)
+        createLoopGroup(newduration) 
         table.insert(loops[newduration],handle)
+        Wait(oldduration)
+        task_inner_updating[oldduration][handle] = nil
+        
          
     end)
 end 
@@ -119,6 +118,7 @@ local addTask = function(handle,duration,onaction)
 end 
 
 RequestLoopThread = function(duration)
+
     local result = setmetatable({},{
         __tostring = function(t)
             local idx = 0 
@@ -134,11 +134,12 @@ RequestLoopThread = function(duration)
         __mode = "kv",
         __newindex=function(t,name,fn) 
             local Kill = function(newduration)
-                DeleteTaskByHandleFromLoopGroup(t[name],GetDurationByHandle(t[name]))
+                DeleteTaskHandleFromLoopGroup(t[name],GetDurationByHandle(t[name]))
+                rawset(t,name,nil)
             end 
             
             local Set = function(newduration)
-                takeTaskToNewLoopGroup(t[name],newduration)
+                TaskHandleJoinNewLoopGroup(t[name],newduration)
             end 
 
             local Check = function()
@@ -168,6 +169,7 @@ RequestLoopThread = function(duration)
             local obj = newobj(duration)
             
             rawset(t,name,obj)
+
             if fn then 
                 addTask(t[name],duration,fn) 
             end 
