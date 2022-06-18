@@ -134,6 +134,10 @@ RegisterServerCallback("getList",function(source,cb,name)
     local List = ReadCSV(name..".csv")
     cb(List)
 end) 
-
+LoadItems = function(resource,path,cb)
+    local raw =  LoadResourceFile(resource,path)
+    local datas = ReadCSVRaw("data/items.csv")
+    if cb then cb(datas) end 
+end 
 ```
 
