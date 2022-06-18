@@ -40,7 +40,9 @@ ReadCSV = function(path,translationkeys)
     local keys = translationkeys or {}
     local k = 1 
     local data = {}
-    for line in io.lines(GetResourcePath(GetCurrentResourceName()).."/"..path) do
+    local rawdata = LoadResourceFile(GetCurrentResourceName(),path)
+    local delimiter = "\r\n"
+    for line in (rawdata..delimiter):gmatch('(.-)'..delimiter) do
         local s = line 
         local delimiter = ","
         if ln == 1 then 
@@ -62,9 +64,12 @@ ReadCSV = function(path,translationkeys)
         end 
         ln = ln + 1
     end
+    --for line in io.lines(GetResourcePath(GetCurrentResourceName()).."/"..path) do
+        
+    --end
     ln = 1
     return data
-end 
+end
 ```
 
 ## Example 
