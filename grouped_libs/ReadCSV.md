@@ -9,6 +9,7 @@ ReadCSV(path,translationkeys)
 
 ## Snippet Code
 ```
+--http://lua-users.org/wiki/CsvUtils
 local function fromLine(s) -- Convert from CSV string to table (converts a single line of a CSV file)
   s = s .. ','        -- ending comma
   local t = {}        -- table to collect fields
@@ -35,6 +36,18 @@ local function fromLine(s) -- Convert from CSV string to table (converts a singl
   return t
 end
 
+local function split (inputstr, sep)
+   if sep == nil then
+           sep = "%s"
+   end
+   local t={}
+   for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+           table.insert(t, str)
+   end
+   return t
+end
+
+
 ReadCSV = function(path,translationkeys)
     local ln = 1
     local keys = translationkeys or {}
@@ -44,15 +57,18 @@ ReadCSV = function(path,translationkeys)
     local rawdata = rawdata:gsub("\r","")
     local delimiter = "\n"
     for line in (rawdata..delimiter):gmatch('(.-)'..delimiter) do
-        local s = line 
+        local isdescription = line:find("#")
+
         local delimiter = ","
         if ln == 1 then 
+            local s = isdescription and line:gsub("#","") or line 
             if not translationkeys then
                 for match in (s..delimiter):gmatch('(.-)'..delimiter) do
                     table.insert(keys, match);
                 end
             end 
         else 
+            local s = isdescription and split(line,"#")[1] or line 
             k = 1
             local linedata = fromLine(line)
             for i=1,#linedata do
@@ -81,15 +97,18 @@ ReadCSVRaw = function(raw,translationkeys)
     local rawdata = rawdata:gsub("\r","")
     local delimiter = "\n"
     for line in (rawdata..delimiter):gmatch('(.-)'..delimiter) do
-        local s = line 
+        local isdescription = line:find("#")
+        
         local delimiter = ","
         if ln == 1 then 
+            local s = isdescription and line:gsub("#","") or line 
             if not translationkeys then
                 for match in (s..delimiter):gmatch('(.-)'..delimiter) do
                     table.insert(keys, match);
                 end
             end 
         else 
+            local s = isdescription and split(line,"#")[1] or line 
             k = 1
             local linedata = fromLine(line)
             for i=1,#linedata do
