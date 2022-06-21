@@ -47,7 +47,6 @@ local function split (inputstr, delimiter)
    return t
 end
 
-
 ReadCSV = function(path,translationkeys)
     local ln = 1
     local keys = translationkeys or {}
@@ -67,6 +66,7 @@ ReadCSV = function(path,translationkeys)
                     table.insert(keys, match);
                 end
             end 
+            ln = ln + 1
         elseif not isdescription then  
             k = 1
             local linedata = fromLine(line)
@@ -77,8 +77,9 @@ ReadCSV = function(path,translationkeys)
                 data[ln-1][keys[k]] = isNumber and tonumber(v) or v 
                 k = k + 1
             end
+            ln = ln + 1
         end 
-        ln = ln + 1
+        
     end
     --for line in io.lines(GetResourcePath(GetCurrentResourceName()).."/"..path) do
         
@@ -105,6 +106,7 @@ ReadCSVRaw = function(raw,translationkeys)
                     table.insert(keys, match);
                 end
             end 
+            ln = ln + 1
         elseif not isdescription then  
             k = 1
             local linedata = fromLine(line)
@@ -115,8 +117,9 @@ ReadCSVRaw = function(raw,translationkeys)
                 data[ln-1][keys[k]] = isNumber and tonumber(v) or v 
                 k = k + 1
             end
+            ln = ln + 1
         end 
-        ln = ln + 1
+
     end
     --for line in io.lines(GetResourcePath(GetCurrentResourceName()).."/"..path) do
         
