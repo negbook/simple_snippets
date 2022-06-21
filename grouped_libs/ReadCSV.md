@@ -36,14 +36,14 @@ local function fromLine(s) -- Convert from CSV string to table (converts a singl
   return t
 end
 
-local function split (inputstr, sep)
-   if sep == nil then
-           sep = "%s"
+local function split (inputstr, delimiter)
+   if delimiter == nil then
+           delimiter = "%s"
    end
    local t={}
-   for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-           table.insert(t, str)
-   end
+   for match in (inputstr..delimiter):gmatch('(.-)'..delimiter) do
+                    table.insert(t, match);
+    end
    return t
 end
 
@@ -68,9 +68,10 @@ ReadCSV = function(path,translationkeys)
                 end
             end 
         else 
+            
             local s = isdescription and split(line,"#")[1] or line 
             k = 1
-            local linedata = fromLine(line)
+            local linedata = s == "" and {} or fromLine(s)
             for i=1,#linedata do
                 local v = linedata[i]
                 if not data[ln-1] then data[ln-1] = {} end 
@@ -98,7 +99,6 @@ ReadCSVRaw = function(raw,translationkeys)
     local delimiter = "\n"
     for line in (rawdata..delimiter):gmatch('(.-)'..delimiter) do
         local isdescription = line:find("#")
-        
         local delimiter = ","
         if ln == 1 then 
             local s = isdescription and line:gsub("#","") or line 
@@ -110,7 +110,8 @@ ReadCSVRaw = function(raw,translationkeys)
         else 
             local s = isdescription and split(line,"#")[1] or line 
             k = 1
-            local linedata = fromLine(line)
+            
+            local linedata = s == "" and {} or fromLine(s)
             for i=1,#linedata do
                 local v = linedata[i]
                 if not data[ln-1] then data[ln-1] = {} end 
