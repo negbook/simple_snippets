@@ -57,7 +57,7 @@ ReadCSV = function(path,translationkeys)
     local rawdata = rawdata:gsub("\r","")
     local delimiter = "\n"
     for line in (rawdata..delimiter):gmatch('(.-)'..delimiter) do
-        local isdescription = line:find("#")
+        local isdescription = line:sub(1,1) == "#"
 
         local delimiter = ","
         if ln == 1 then 
@@ -67,11 +67,9 @@ ReadCSV = function(path,translationkeys)
                     table.insert(keys, match);
                 end
             end 
-        else 
-            
-            local s = isdescription and split(line,"#")[1] or line 
+        elseif not isdescription then  
             k = 1
-            local linedata = s == "" and {} or fromLine(s)
+            local linedata = fromLine(line)
             for i=1,#linedata do
                 local v = linedata[i]
                 if not data[ln-1] then data[ln-1] = {} end 
@@ -98,7 +96,7 @@ ReadCSVRaw = function(raw,translationkeys)
     local rawdata = rawdata:gsub("\r","")
     local delimiter = "\n"
     for line in (rawdata..delimiter):gmatch('(.-)'..delimiter) do
-        local isdescription = line:find("#")
+        local isdescription = line:sub(1,1) == "#"
         local delimiter = ","
         if ln == 1 then 
             local s = isdescription and line:gsub("#","") or line 
@@ -107,11 +105,9 @@ ReadCSVRaw = function(raw,translationkeys)
                     table.insert(keys, match);
                 end
             end 
-        else 
-            local s = isdescription and split(line,"#")[1] or line 
+        elseif not isdescription then  
             k = 1
-            
-            local linedata = s == "" and {} or fromLine(s)
+            local linedata = fromLine(line)
             for i=1,#linedata do
                 local v = linedata[i]
                 if not data[ln-1] then data[ln-1] = {} end 
