@@ -5,19 +5,20 @@ for: shared
 
 ```lua
 ClientCommand["cmd"] = function(source,...)
-ServerCommand["cmd"] = function(source,...)
-SharedCommand["cmd"] = function(source,...)
+RconCommand["cmd"] = function(source,...)
+MixCommand["cmd"] = function(source,...)
 Command["cmd"] = function(...)
 ```
 
 ## Snippet Code
 ```
 if IsDuplicityVersion() then 
-    ClientCommand = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source) if source>0 then fn(source,table.unpack(args)) end end) return end })
-    ServerCommand = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source) if source>0 then else fn(table.unpack(args)) end end) return end })
-    SharedCommand = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source) fn(source,table.unpack(args)) end) return end })
+    ClientCommand = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source) if source>=1 then fn(source,table.unpack(args)) end end) return rawset(t,k,fn) end  })
+    RconCommand = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source) if source>=1 then else fn(table.unpack(args)) end end) return rawset(t,k,fn) end   })
+    MixCommand = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source) fn(source,table.unpack(args)) end) return rawset(t,k,fn) end  })
+    
 else 
-    Command = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source)  fn(table.unpack(args)) end) return end })
+    Command = setmetatable({},{__newindex=function(t,k,fn) RegisterCommand(k,function(source, args, raw) local source = tonumber(source)  fn(table.unpack(args)) end) return rawset(t,k,fn)  end })
 end 
 ```
 
@@ -64,7 +65,7 @@ end
 ```
 
 ```
-ServerCommand["trace"] = function(a)   
+RconCommand["trace"] = function(a)   
     local rawprint = print
     if a then 
         local text = a:gmatch("`(.-)`")()
