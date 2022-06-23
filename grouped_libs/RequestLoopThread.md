@@ -13,6 +13,8 @@ handle = RequestLoopThread(duration)
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/RequestLoopThread.md
 local e,loops,taskduration,task = {},{},{},{}
 setmetatable(loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index = function(t,k) return rawget(t,tostring(k)) end })
+local TempHandles = {}
+local TempThreadGroup = {}
 setmetatable(e,{__call = function() end })
 local task_inner_updating = {}
 
@@ -90,6 +92,7 @@ local createLoopGroup;createLoopGroup = function(duration)
                 Wait(duration)
             until not runtask
             threads_total = threads_total - 1
+            if TempThreadGroup[duration] then TempThreadGroup[duration] = nil end 
             return 
         end) 
     end 
@@ -118,64 +121,76 @@ local addTask = function(handle,duration,onaction)
 end 
 
 RequestLoopThread = function(duration)
-
-    local result = setmetatable({},{
-        __tostring = function(t)
-            local idx = 0 
-            local tasks = {}
-            for i,v in pairs(t) do 
-                if i ~= "debug" then 
-                    idx = idx + 1
-                    table.insert(tasks,i)
-                end 
-            end 
-            return "This handle has "..idx .." tasks: "..table.concat(tasks,",")
-        end,
-        __mode = "kv",
-        __newindex=function(t,name,fn) 
-            local Kill = function(newduration)
-                DeleteTaskHandleFromLoopGroup(t[name],GetDurationByHandle(t[name]))
-                rawset(t,name,nil)
-            end 
-            
-            local Set = function(newduration)
-                TaskHandleJoinNewLoopGroup(t[name],newduration)
-            end 
-
-            local Check = function()
-                return not not  t[name]
-            end 
-            local newobj = function(default)
-                local value = default or 0
-                return function(action,v) 
-                    if Check() then  
-                        if action == 'get' then 
-                            if v then 
-                                return value or 0
-                            else
-                                return value or 0
-                            end 
-                        elseif action == 'set' then 
-                            if value ~= v then 
-                                value = v 
-                                Set(v)
-                            end 
-                        elseif action == 'kill' or action == 'break' then 
-                            Kill()
-                        end 
+    if not TempThreadGroup[duration] then 
+        local result = setmetatable({},{
+            __tostring = function(t)
+                local idx = 0 
+                local tasks = {}
+                for i,v in pairs(t) do 
+                    if i ~= "debug" then 
+                        idx = idx + 1
+                        table.insert(tasks,i)
                     end 
                 end 
-            end
-            local obj = newobj(duration)
-            
-            rawset(t,name,obj)
+                return "This handle has "..idx .." tasks: "..table.concat(tasks,",")
+            end,
+            __mode = "kv",
+            __newindex=function(t,name,fn) 
+                if t[name] and t[name].linked then 
+                    t[name].handle("kill")
+                    TempHandles[name] = nil 
+                end 
+                local Kill = function(newduration)
+                    DeleteTaskHandleFromLoopGroup(TempHandles[name],GetDurationByHandle(TempHandles[name]))
+                end 
+                
+                local Set = function(newduration)
+                    TaskHandleJoinNewLoopGroup(TempHandles[name],newduration)
+                end 
 
-            if fn then 
-                addTask(t[name],duration,fn) 
-            end 
-        end}
-    )
-    return result
+                local Check = function()
+                    return not not  TempHandles[name]
+                end 
+                local newobj = function(default)
+                    local value = default or 0
+                    return function(action,v) 
+                        if Check() then  
+                            if action == 'get' then 
+                                if v then 
+                                    return value or 0
+                                else
+                                    return value or 0
+                                end 
+                            elseif action == 'set' then 
+                                if value ~= v then 
+                                    value = v 
+                                    Set(v)
+                                end 
+                            elseif action == 'kill' or action == 'break' then 
+                                Kill()
+                            end 
+                        end 
+                    end 
+                end
+                local obj = newobj(duration)
+                TempHandles[name] = obj 
+                
+                rawset(t,name,{
+                    linked = fn,
+                    handle = obj,
+                    isAlive = function()
+                        return GetDurationByHandle(TempHandles[name])
+                    end 
+                })
+
+                if fn then 
+                    addTask(TempHandles[name],duration,fn) 
+                end 
+            end}
+        )
+        TempThreadGroup[duration] = result
+    end 
+    return TempThreadGroup[duration]
 end 
 ```
 
