@@ -138,18 +138,18 @@ RequestLoopThread = function(duration)
             __newindex=function(t,name,fn) 
                 if t[name] and t[name].linked then 
                     t[name].handle("kill")
-                    TempHandles[name] = nil 
+                    TempHandles[t][name] = nil 
                 end 
                 local Kill = function(newduration)
-                    DeleteTaskHandleFromLoopGroup(TempHandles[name],GetDurationByHandle(TempHandles[name]))
+                    DeleteTaskHandleFromLoopGroup(TempHandles[t][name],GetDurationByHandle(TempHandles[t][name]))
                 end 
                 
                 local Set = function(newduration)
-                    TaskHandleJoinNewLoopGroup(TempHandles[name],newduration)
+                    TaskHandleJoinNewLoopGroup(TempHandles[t][name],newduration)
                 end 
 
                 local Check = function()
-                    return not not  TempHandles[name]
+                    return not not  TempHandles[t][name]
                 end 
                 local newobj = function(default)
                     local value = default or 0
@@ -173,24 +173,43 @@ RequestLoopThread = function(duration)
                     end 
                 end
                 local obj = newobj(duration)
-                TempHandles[name] = obj 
+                if not TempHandles[t] then TempHandles[t] = {} end 
+                TempHandles[t][name] = obj 
                 
-                rawset(t,name,{
+                rawset(t,name,setmetatable({
+                    name = name,
                     linked = fn,
                     handle = obj,
                     isAlive = function()
-                        return GetDurationByHandle(TempHandles[name])
+                        return GetDurationByHandle(TempHandles[t][name])
                     end 
-                })
+                },{__call = function(g,...) return g.handle(...) end}))
 
                 if fn then 
-                    addTask(TempHandles[name],duration,fn) 
+                    addTask(TempHandles[t][name],duration,fn) 
                 end 
             end}
         )
         TempThreadGroup[duration] = result
     end 
     return TempThreadGroup[duration]
+end 
+
+TaskLifeRemain = {}
+KillTaskLater = function(taskhandle,duration,percheck,cb)
+    if not TaskLifeRemain[taskhandle] then 
+        TaskLifeRemain[taskhandle] = GetGameTimer() + duration
+    end 
+    local percheck = percheck or 333
+    local tempCheck = RequestLoopThread(percheck)
+    tempCheck[taskhandle.name.."remaining"] = function(duration)
+        if TaskLifeRemain[taskhandle] and GetGameTimer() >= TaskLifeRemain[taskhandle] then 
+            taskhandle("kill")
+            duration("kill")
+            if cb then cb() end 
+        end 
+    end 
+    
 end 
 ```
 
@@ -209,17 +228,17 @@ local Loop2 = RequestLoopThread(1000)
 
 Loop["test"] = function(duration)
     print("Loop test "..duration("get"))
-    print(GetThreadsTotal())
     print(Loop)
 end 
 
-Loop2["test"] = function(duration)
+Loop2["test2"] = function(duration)
     print("Loop2 test "..duration("get"))
-    print(GetThreadsTotal())
     duration("set",500)
     Loop["test"]("set",500)
     
 end 
+
+KillTaskLater(Loop2["test2"],3000,100)
 
 ```
 
