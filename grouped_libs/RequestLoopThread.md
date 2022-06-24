@@ -11,206 +11,206 @@ handle = RequestLoopThread(duration)
 ```
 --Credit: negbook
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/RequestLoopThread.md
-local e,loops,taskduration,task = {},{},{},{}
-setmetatable(loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index = function(t,k) return rawget(t,tostring(k)) end })
-local TempHandles = {}
-local TempThreadGroup = {}
-setmetatable(e,{__call = function() end })
-local task_inner_updating = {}
+local Loops = {}
+local Fn = {}
+local FnOnDelete = {}
+local FnCustomDurations = {}
 
-local threads_total = 0
-local GetThreadsTotal = function() return ("threads_total"..threads_total) end 
-
-local GetDurationByHandle = function(handle)
-    if not handle then return end 
-    for duration,handles in pairs(loops) do 
-        for i=1,#handles do 
-            if handles[i] == handle then 
-                return duration 
+local GetDurationStringAndIndexFromLoopsIfFnNameExisted = function(id)
+    for existeddurationStr,names in pairs(Loops) do 
+        for i=1,#names do 
+            local v = names[i]
+            if v == id then 
+                return existeddurationStr,i
             end 
         end 
     end 
 end 
 
-local DeleteTaskHandleFromLoopGroup = function(handle,duration)
-    if not handle then return end 
-    local handle_index
-    local handles = loops[duration]
-    if handles then 
-        for idx=1,#handles do 
-            local v = handles[idx]
-            if v == handle then 
-                handle_index = idx
-                break
-            end 
-        end 
+local removeFnNameFromDurationGroup = function(_durationStr,idx)
+    table.remove(Loops[_durationStr],idx) 
+    if #Loops[_durationStr] == 0 then 
+        Loops[_durationStr] = nil
     end 
     
-    if (loops[duration] or e)[handle_index] then table.remove(loops[duration],handle_index) end 
-    if loops[duration] and #loops[duration] == 0 then loops[duration] = nil end 
-
 end 
 
-local updateTask = function(handle,newduration,cb)
-    if not handle then return end 
-    local oldduration = GetDurationByHandle(handle)
-    if oldduration ~= newduration then  
-        if not task_inner_updating[oldduration] then task_inner_updating[oldduration] = {} end 
-        task_inner_updating[oldduration][handle] = cb 
+local DeleteExistedFnNameIfDurationBecomeDiff = function(id,_durationStr)
+    local existeddurationStr,idx = GetDurationStringAndIndexFromLoopsIfFnNameExisted(id)
+    if existeddurationStr and _durationStr ~= existeddurationStr then 
+        removeFnNameFromDurationGroup(existeddurationStr,idx)
+        return true 
+    end 
+end 
+
+local function newObject(default)
+    local value = default or 0
+    local haschange = false 
+    local haskilled = false 
+    return function(action,v) 
+        if action == 'get' then 
+            if v then 
+                local temphaschange = haschange
+                local temphaskilled = haskilled
+                haschange = false
+                haskilled = false
+                return value , temphaschange, temphaskilled
+            else
+                return value  
+            end 
+        elseif action == 'set' then 
+            if value ~= v then 
+                haschange = true
+                value = v 
+            else 
+                haschange = false 
+            end 
+        elseif action == 'kill' or action == 'break' then 
+            haskilled = true 
+        end 
+    end 
+end 
+
+local __createNewThreadForNewDurationLoopFunctionsGroup = function(_durationStr)
+    CreateThread(function()
+        local loop = Loops[_durationStr]
+        local _durationNum = tonumber(_durationStr)
+        local e = {}
+        local setgeters = {}
+        setmetatable(setgeters,{__mode = "k"})
+        repeat  
+            local fnList = (loop or e)
+            local isAnyJob = fnList[1]
+            if isAnyJob then 
+                for i=1,#fnList do 
+                    local _nowfnname = fnList[i]
+                    local f = Fn[_nowfnname]
+                    if f then 
+                        if setgeters[_nowfnname] == nil then 
+                            setgeters[_nowfnname] = newObject(_durationNum) 
+                            
+                        end 
+                        local duration_editor = setgeters[_nowfnname]
+                        f(duration_editor)
+                        local durationset,haschange,haskilled = duration_editor('get',true)
+                        if haskilled then 
+                            setgeters[_nowfnname] = nil
+                            deleteloop(_nowfnname)
+                        elseif haschange then 
+                            setgeters[_nowfnname] = nil
+                            setloopcustomduration(_nowfnname,durationset) ;
+                        end 
+                    end 
+                end 
+            end 
+            Wait(_durationNum)
+            
+        until not isAnyJob 
+        setgeters = nil
+        --print("Deleted thread",_durationStr)
+        return 
+    end)
+end     
+
+local addloop = function(_duration,_fn,_fnondelete)
+    local id = _fn
+    if Fn[id] ~= nil  then 
+        return 
+    end
+    
+    Fn[id] = _fn  
+    
+    if _fnondelete then 
+        FnOnDelete[id] = _fnondelete  
+    end 
+    
+    local _durationStr = tostring(_duration)
+    
+    if Loops[_durationStr] == nil then 
+        Loops[_durationStr] = {}; 
+        __createNewThreadForNewDurationLoopFunctionsGroup(_durationStr)
+    end 
+    table.insert(Loops[_durationStr],id)
+    return id
+end 
+local insertloop = addloop
+
+local deleteloop = function(id)
+    
+    local durationStr,idx = GetDurationStringAndIndexFromLoopsIfFnNameExisted(id)
+    if durationStr then 
+        Fn[id] = nil 
+        removeFnNameFromDurationGroup(durationStr,idx)
+        if FnOnDelete[id] then 
+            FnOnDelete[id]() 
+            FnOnDelete[id] = nil 
+        end 
+    end 
+end 
+
+local isloopalive = function(id)
+   
+    local durationStr,idx = GetDurationStringAndIndexFromLoopsIfFnNameExisted(id)
+    if durationStr then 
+        return true 
+    end 
+     
+    return false 
+end 
+
+local updateloop = function(id,_newduration)
+    local _olddurationStr,idx = GetDurationStringAndIndexFromLoopsIfFnNameExisted(id)
+    local _newdurationStr = tostring(_newduration)
+    if _olddurationStr ~= _newdurationStr then  
+        removeFnNameFromDurationGroup(_olddurationStr,idx)
+        if Loops[_newdurationStr] == nil then 
+            Loops[_newdurationStr] = {}; 
+            -- this is important to wait after just set a new duration  
+            Wait(tonumber(_olddurationStr))
+            -- Very Important to Wait because CreateThread newduration is diff from oldduration
+            __createNewThreadForNewDurationLoopFunctionsGroup(_newdurationStr)
+        end 
+        table.insert(Loops[_newdurationStr],id)
         return 
     end 
 end 
 
-
-local createLoopGroup;createLoopGroup = function(duration)
-
-    if loops[duration] == nil then 
-        loops[duration] = {}; 
-        
-        CreateThread(function()
-            threads_total = threads_total + 1
-            local handles = loops[duration]
-            repeat 
-                local runtask = false 
-                local handles = handles or e 
-                if handles then 
-                    for i=1,#handles do 
-                        runtask = true 
-                        local handle = handles[i] 
-                        if handle then 
-                            local action = task[handle]
-                            local task_inner_update = (task_inner_updating[duration] or e)[handle]
-                            if action and not task_inner_update then 
-                                action(handle)
-                            end 
-                            if task_inner_update then 
-                                task_inner_update(duration)
-                            end 
-                        end 
-                    end 
-                end 
-                Wait(duration)
-            until not runtask
-            threads_total = threads_total - 1
-            if TempThreadGroup[duration] then TempThreadGroup[duration] = nil end 
-            return 
-        end) 
-    end 
-  
+setloopcustomduration = function(id,_duration)
+    FnCustomDurations[id] = _duration
+    updateloop(id,_duration)
+end 
+getloopcustomduration = function(id)
+    return FnCustomDurations[id]
+end 
+hasloopcustomduration = function(id)
+    return FnCustomDurations[id] ~= nil
 end 
 
-local TaskHandleJoinNewLoopGroup = function(handle, newduration)
-    updateTask(handle,newduration,function()
-        
-        local oldduration = GetDurationByHandle(handle)
-        DeleteTaskHandleFromLoopGroup(handle,oldduration)
-        createLoopGroup(newduration) 
-        table.insert(loops[newduration],handle)
-        Wait(oldduration)
-        task_inner_updating[oldduration][handle] = nil
-        
-         
-    end)
-end 
 
-local addTask = function(handle,duration,onaction)
-    if not handle then return end 
-    task[handle] = onaction  
-    createLoopGroup(duration)
-    table.insert(loops[duration],handle)
-end 
+local RequestLoopThread = function(duration)
+    local fn = nil
+    local self = {}
 
-RequestLoopThread = function(duration)
-    if not TempThreadGroup[duration] then 
-        local result = setmetatable({},{
-            __tostring = function(t)
-                local idx = 0 
-                local tasks = {}
-                for i,v in pairs(t) do 
-                    if i ~= "debug" then 
-                        idx = idx + 1
-                        table.insert(tasks,i)
-                    end 
-                end 
-                return "This handle has "..idx .." tasks: "..table.concat(tasks,",")
-            end,
-            __mode = "kv",
-            __newindex=function(t,name,fn) 
-                if t[name] and t[name].linked then 
-                    t[name].handle("kill")
-                    TempHandles[t][name] = nil 
-                end 
-                local Kill = function(newduration)
-                    DeleteTaskHandleFromLoopGroup(TempHandles[t][name],GetDurationByHandle(TempHandles[t][name]))
-                end 
-                
-                local Set = function(newduration)
-                    TaskHandleJoinNewLoopGroup(TempHandles[t][name],newduration)
-                end 
-
-                local Check = function()
-                    return not not  TempHandles[t][name]
-                end 
-                local newobj = function(default)
-                    local value = default or 0
-                    return function(action,v) 
-                        if Check() then  
-                            if action == 'get' then 
-                                if v then 
-                                    return value or 0
-                                else
-                                    return value or 0
-                                end 
-                            elseif action == 'set' then 
-                                if value ~= v then 
-                                    value = v 
-                                    Set(v)
-                                end 
-                            elseif action == 'kill' or action == 'break' then 
-                                Kill()
-                            end 
-                        end 
-                    end 
-                end
-                local obj = newobj(duration)
-                if not TempHandles[t] then TempHandles[t] = {} end 
-                TempHandles[t][name] = obj 
-                
-                rawset(t,name,setmetatable({
-                    name = name,
-                    linked = fn,
-                    handle = obj,
-                    isAlive = function()
-                        return GetDurationByHandle(TempHandles[t][name])
-                    end 
-                },{__call = function(g,...) return g.handle(...) end}))
-
-                if fn then 
-                    addTask(TempHandles[t][name],duration,fn) 
-                end 
-            end}
-        )
-        TempThreadGroup[duration] = result
-    end 
-    return TempThreadGroup[duration]
-end 
-
-TaskLifeRemain = {}
-KillTaskLater = function(taskhandle,duration,percheck,cb)
-    if not TaskLifeRemain[taskhandle] then 
-        TaskLifeRemain[taskhandle] = GetGameTimer() + duration
-    end 
-    local percheck = percheck or 333
-    local tempCheck = RequestLoopThread(percheck)
-    tempCheck[taskhandle.name.."remaining"] = function(duration)
-        if TaskLifeRemain[taskhandle] and GetGameTimer() >= TaskLifeRemain[taskhandle] then 
-            taskhandle("kill")
-            duration("kill")
-            if cb then cb() end 
-        end 
-    end 
-    
-end 
+    self.add = function(self,_fn,fnondelete)
+        fn = _fn
+        return addloop(duration,fn,fnondelete)
+    end
+    self.delete = function(self)
+        deleteloop(fn)
+    end
+    self.set = function(self,newduration)
+        setloopcustomduration(fn,newduration)
+    end
+    self.get = function(self)
+        return getloopcustomduration(fn)
+    end
+    self.has = function(self)
+        return hasloopcustomduration(fn)
+    end
+    return setmetatable(self,{__call = function(self,...)
+        return self:add(...)
+    end})
+end
 ```
 
 ## Example 
@@ -238,7 +238,6 @@ Loop2["test2"] = function(duration)
     
 end 
 
-KillTaskLater(Loop2["test2"],3000,100)
 
 ```
 
