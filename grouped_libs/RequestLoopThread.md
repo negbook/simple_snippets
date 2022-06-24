@@ -215,29 +215,22 @@ end
 
 ## Example 
 ```
-local handle = RequestLoopThread(500)
-handle['name'] = function(duration)
-    duration("set",1000) --new duration 
-    print(duration("get")) -- get current duration
-    duration("kill") -- kill this task from the loop 
-end 
-
 
 local Loop = RequestLoopThread(1000)
 local Loop2 = RequestLoopThread(1000)
 
-Loop["test"] = function(duration)
+Loop(function(duration)
     print("Loop test "..duration("get"))
     print(Loop)
-end 
+end)
 
-Loop2["test2"] = function(duration)
+Loop2(function(duration)
     print("Loop2 test "..duration("get"))
     duration("set",500)
-    Loop["test"]("set",500)
-    
-end 
 
+end )
+
+Loop2:delete()
 
 ```
 
