@@ -128,9 +128,27 @@ Tasksync.PepareLoop = function(duration,realeaseduration,releasecb)
     local self = {}
     local releasetimer = realeaseduration 
     local fn = nil 
-    self.add = function(self,_fn)
+    self.add = function(self,_fn,_fnondelete)
         fn = _fn
-        local id = Tasksync.addloop(duration,fn,releasecb)
+        local ontaskdelete = nil
+        if not _fnondelete then 
+            if releasecb then 
+                ontaskdelete = function(id)
+                    releasecb(id)
+                end 
+            end
+        else 
+            if releasecb then 
+                ontaskdelete = function(id)
+                    releasecb(id)
+                    _fnondelete(id)
+                end 
+            else 
+                ontaskdelete = _fnondelete
+            end
+        end
+        
+        local id = Tasksync.addloop(duration,fn,ontaskdelete)
         if releasetimer then 
             local endtimer = GetGameTimer() + releasetimer
             local temp;temp = Tasksync.addloop(250,function()
@@ -170,6 +188,7 @@ return PepareLoop(...)
 PepareLoop = function(...)
     return init(...)
 end
+
 
 ```
 
