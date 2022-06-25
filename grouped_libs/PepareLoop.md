@@ -118,11 +118,6 @@ end
 Tasksync.getloopcustomduration = function(id)
     return FnCustomDurations[id]
 end 
-Tasksync.hasloopcustomduration = function(id)
-    return FnCustomDurations[id] ~= nil
-end 
-
-
 
 Tasksync.PepareLoop = function(duration,realeaseduration,releasecb)
     local self = {}
@@ -171,9 +166,6 @@ Tasksync.PepareLoop = function(duration,realeaseduration,releasecb)
     self.get = function(self)
         if fn then return Tasksync.getloopcustomduration(fn) end 
     end
-    self.has = function(self)
-        if fn then  return Tasksync.hasloopcustomduration(fn)  end
-    end
     return setmetatable(self,{__call = function(self,...)
         return self:add(...)
     end})
@@ -188,6 +180,7 @@ return PepareLoop(...)
 PepareLoop = function(...)
     return init(...)
 end
+
 
 
 ```
