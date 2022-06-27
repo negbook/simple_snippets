@@ -15,8 +15,9 @@ local _M_ = {}
 do 
 local Tasksync = _M_
 local Loops = {}
-
+local e = {}
 setmetatable(Loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index=function(t,k) return rawget(t,tostring(k)) end})
+setmetatable(e,{__call=function()end})
 
 local GetDurationAndIndex = function(obj,cb) for duration,names in pairs(Loops) do for i=1,#names do local v = names[i] if v == obj then local duration_tonumber = tonumber(duration) if cb then cb(duration_tonumber,i) end return duration_tonumber,i end end end end
 local remove_manual = function(duration,index) local indexs = Loops[duration] table.remove(indexs,index) if #indexs == 0 then Loops[duration] = nil end end 
@@ -94,16 +95,34 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,i
     local init = init   
     CreateThread(function()
         local loop = Loops[duration]
+        
+        if init then init() init = nil end
+        repeat 
+            local Objects = (loop or e)
+            local n = #Objects
+            for i=1,n do 
+                (Objects[i] or e)()
+            end 
+            Wait(duration)
+            
+        until n == 0 
+        --print("Deleted thread",duration)
+        return 
+    end)
+end     
+
+Tasksync.__createNewThreadForNewDurationLoopFunctionsGroupDebug = function(duration,init)
+    local init = init   
+    CreateThread(function()
+        local loop = Loops[duration]
         local e = {}
         if init then init() init = nil end
         repeat 
             local Objects = (loop or e)
             local n = #Objects
             for i=1,n do 
-                Objects[i]()
+                (Objects[i] or e)()
             end 
-            Wait(duration)
-            
         until n == 0 
         --print("Deleted thread",duration)
         return 
@@ -122,7 +141,9 @@ Tasksync.addloop = function(duration,fn,fnondelete,isreplace)
         end 
     end 
     init(duration,obj,function()
-        Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup(duration)
+        if duration < 0 then Tasksync.__createNewThreadForNewDurationLoopFunctionsGroupDebug(duration) else 
+            Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup(duration)
+        end 
     end)
     return obj
 end 
