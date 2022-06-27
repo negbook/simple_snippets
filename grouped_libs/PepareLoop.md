@@ -11,7 +11,6 @@ handle = PepareLoop(duration)
 ```
 --Credit: negbook
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/PepareLoop.md
-
 local init = load(
     [===[
 local _M_ = {}
@@ -21,6 +20,8 @@ local Loops = {}
 local FnTask = {}
 local FnOnDelete = {}
 local FnCustomDurations = {}
+
+local FnReleaseTimer = {}
 setmetatable(Loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index=function(t,k) return rawget(t,tostring(k)) end})
 
 local GetDurationAndIndex = function(id,cb) for duration,names in pairs(Loops) do for i=1,#names do local v = names[i] if v == id then local duration_tonumber = tonumber(duration) if cb then cb(duration_tonumber,i) end return duration_tonumber,i end end end end
@@ -86,7 +87,9 @@ Tasksync.addloop = function(duration,fn,fnondelete,isreplace)
     if fnondelete then 
         FnOnDelete[id] = fnondelete  
     end 
-
+    
+    FnReleaseTimer[id] = nil 
+    
     init(duration,id,function()
         Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup(duration)
     end)
@@ -101,6 +104,10 @@ Tasksync.deleteloop = function(id)
         if FnOnDelete[id] then 
             FnOnDelete[id](id) 
             FnOnDelete[id] = nil 
+        end 
+        if FnReleaseTimer[id] then 
+            FnReleaseTimer[id] = nil 
+            
         end 
     end)
 end 
@@ -119,9 +126,38 @@ Tasksync.getloopcustomduration = function(id)
     return FnCustomDurations[id]
 end 
 
-Tasksync.PepareLoop = function(duration,realeaseduration,releasecb)
+ 
+local newreleasetimer = function(id,timer,cb)
+    local releasetimer = timer   + GetGameTimer()
+    local id = id 
+    local tempcheck = Tasksync.PepareLoop(250)  
+    tempcheck(function(duration)
+        if GetGameTimer() > releasetimer then 
+            tempcheck:delete()
+            Tasksync.deleteloop(id)
+        end 
+    end,cb)
+    return function(action,value)
+        if action == "get" then 
+            return releasetimer
+        elseif action == "set" then 
+            releasetimer = timer + GetGameTimer()
+        end 
+    end 
+end  
+Tasksync.setreleasetimer = function(id,releasetimer)
+    if not FnReleaseTimer[id] then 
+        FnReleaseTimer[id] = newreleasetimer(id,releasetimer,function()
+            FnReleaseTimer[id] = nil
+        end) 
+    else 
+        FnReleaseTimer[id]("set",releasetimer)
+    end 
+
+end 
+
+Tasksync.PepareLoop = function(duration,releasecb)
     local self = {}
-    local releasetimer = realeaseduration 
     local fn = nil 
     self.add = function(self,_fn,_fnondelete)
         fn = _fn
@@ -142,30 +178,28 @@ Tasksync.PepareLoop = function(duration,realeaseduration,releasecb)
                 ontaskdelete = _fnondelete
             end
         end
-        
-        local id = Tasksync.addloop(duration,fn,ontaskdelete)
-        if releasetimer then 
-            local endtimer = GetGameTimer() + releasetimer
-            local temp;temp = Tasksync.addloop(250,function()
-                if GetGameTimer() > endtimer then 
-                    Tasksync.deleteloop(temp)
-                end 
-             end,function()
-                releasetimer = nil
-                Tasksync.deleteloop(id)
-            end)
-        end 
-        return id
+
+        return Tasksync.addloop(duration,fn,ontaskdelete)
     end
-    self.delete = function(self)
-        if fn then Tasksync.deleteloop(fn) end
+    self.delete = function(self,duration)
+        if fn then 
+            if duration then 
+                Tasksync.setreleasetimer(fn,duration) 
+            else 
+                Tasksync.deleteloop(fn) 
+            end 
+        end
     end
+    self.release = self.delete
+    self.remove = self.delete
+    self.kill = self.delete
     self.set = function(self,newduration)
         if fn then Tasksync.setloopcustomduration(fn,newduration) end 
     end
     self.get = function(self)
         if fn then return Tasksync.getloopcustomduration(fn) end 
     end
+
     return setmetatable(self,{__call = function(self,...)
         return self:add(...)
     end})
@@ -177,12 +211,9 @@ PepareLoop = _M_.PepareLoop
 return PepareLoop(...)
         ]===]
 )
-PepareLoop = function(...)
+PepareLoop = PepareLoop or function(...)
     return init(...)
 end
-
-
-
 ```
 
 ## Example 
