@@ -11,6 +11,9 @@ handle = PepareLoop(duration)
 ```
 --Credit: negbook
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/PepareLoop.md
+local init = load(
+    [===[
+
 local _M_ = {}
 do 
 local Tasksync = _M_
@@ -51,7 +54,7 @@ local newloopobject = function(duration,onaction,ondelete)
         end 
     elseif onaction and not ondelete then 
         return function (action,value)
-            if action == "onaction" then 
+            if not action or action == "onaction" then 
                 return onaction(ref)
             elseif action == "setduration" then 
                 duration = value 
@@ -115,7 +118,6 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroupDebug = function(durat
     local init = init   
     CreateThread(function()
         local loop = Loops[duration]
-        local e = {}
         if init then init() init = nil end
         repeat 
             local Objects = (loop or e)
@@ -247,6 +249,13 @@ end
 end 
 
 PepareLoop = _M_.PepareLoop
+
+return PepareLoop(...)
+        ]===]
+)
+PepareLoop = PepareLoop or function(...)
+    return init(...)
+end
 ```
 
 ## Example 
