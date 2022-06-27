@@ -11,10 +11,6 @@ handle = PepareLoop(duration)
 ```
 --Credit: negbook
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/PepareLoop.md
-local init = load(
-    [===[
---Credit: negbook
---https://github.com/negbook/simple_snippets/blob/main/grouped_libs/PepareLoop.md
 local _M_ = {}
 do 
 local Tasksync = _M_
@@ -83,15 +79,11 @@ local updateloop = function(obj,new_duration,cb)
 end 
 
 local ref = function (default,obj)
-    local value = default or 0 
     return function(action,v) 
         if action == 'get' then 
-            return value 
+            return obj("getduration") 
         elseif action == 'set' then 
-            if value ~= v then 
-                value = v 
-                Tasksync.setloopcustomduration(obj,v) ;
-            end 
+            return Tasksync.transferobject(obj,v)  
         elseif action == 'kill' or action == 'break' then 
             Tasksync.deleteloop(obj)
         end 
@@ -143,19 +135,15 @@ Tasksync.deleteloop = function(obj)
 end 
 Tasksync.removeloop = Tasksync.deleteloop
 
-Tasksync.setloopcustomduration = function(obj,duration)
+Tasksync.transferobject = function(obj,duration)
     local old_duration = obj("getduration")
     if duration ~= old_duration then 
-        obj("setduration",duration)
         updateloop(obj,duration,function()
+            obj("setduration",duration)
             Wait(old_duration)
         end)
     end 
 end 
-Tasksync.getloopcustomduration = function(obj)
-    return obj("getduration")
-end 
-
  
 local newreleasetimer = function(obj,timer,cb)
     local releasetimer = timer   + GetGameTimer()
@@ -225,10 +213,10 @@ Tasksync.PepareLoop = function(duration,releasecb)
     self.remove = self.delete
     self.kill = self.delete
     self.set = function(self,newduration)
-        if obj then Tasksync.setloopcustomduration(obj,newduration) end 
+        if obj then Tasksync.transferobject(obj,newduration) end 
     end
     self.get = function(self)
-        if obj then return Tasksync.getloopcustomduration(obj) end 
+        if obj then return obj("getduration") end 
     end
 
     return setmetatable(self,{__call = function(self,...)
@@ -238,13 +226,6 @@ end
 end 
 
 PepareLoop = _M_.PepareLoop
-
-return PepareLoop(...)
-        ]===]
-)
-PepareLoop = PepareLoop or function(...)
-    return init(...)
-end
 ```
 
 ## Example 
