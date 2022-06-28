@@ -11,14 +11,12 @@ handle = PepareLoop(duration)
 ```
 --Credit: negbook
 --https://github.com/negbook/simple_snippets/blob/main/grouped_libs/PepareLoop.md
-local init = load(
-    [===[
-
 local _M_ = {}
 do 
 local Tasksync = _M_
 local Loops = {}
 local e = {}
+local totalthreads = 0
 setmetatable(Loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index=function(t,k) return rawget(t,tostring(k)) end})
 setmetatable(e,{__call=function()end})
 
@@ -50,6 +48,10 @@ local newloopobject = function(duration,onaction,ondelete)
                 releaseobject = value 
             elseif action == "getreleasetimerobject" then 
                 return releaseobject
+            elseif action == "set" then 
+                duration = value 
+            elseif action == "get" then 
+                return duration 
             end 
         end 
     elseif onaction and not ondelete then 
@@ -68,6 +70,10 @@ local newloopobject = function(duration,onaction,ondelete)
                 releaseobject = value 
             elseif action == "getreleasetimerobject" then 
                 return releaseobject
+            elseif action == "set" then 
+                duration = value 
+            elseif action == "get" then 
+                return duration 
             end 
         end 
     end 
@@ -97,6 +103,7 @@ end
 Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,init)
     local init = init   
     CreateThread(function()
+        totalthreads = totalthreads + 1
         local loop = Loops[duration]
         
         if init then init() init = nil end
@@ -110,6 +117,7 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,i
             
         until n == 0 
         --print("Deleted thread",duration)
+        totalthreads = totalthreads - 1
         return 
     end)
 end     
@@ -151,9 +159,10 @@ Tasksync.addloop = function(duration,fn,fnondelete,isreplace)
 end 
 Tasksync.insertloop = Tasksync.addloop
 
-Tasksync.deleteloop = function(obj)
+Tasksync.deleteloop = function(obj,cb)
     remove(obj,function()
         obj("ondelete")
+        if cb then cb() end 
     end)
 end 
 Tasksync.removeloop = Tasksync.deleteloop
@@ -175,9 +184,9 @@ local newreleasetimer = function(obj,timer,cb)
     tempcheck(function(duration)
         if GetGameTimer() > releasetimer then 
             tempcheck:delete()
-            Tasksync.deleteloop(obj)
+            Tasksync.deleteloop(obj,cb)
         end 
-    end,cb)
+    end)
     return function(action,value)
         if action == "get" then 
             return releasetimer
@@ -188,10 +197,11 @@ local newreleasetimer = function(obj,timer,cb)
 end  
 
 
-Tasksync.setreleasetimer = function(obj,releasetimer)
+Tasksync.setreleasetimer = function(obj,releasetimer,cb)
     if not obj("getreleasetimerobject") then 
         obj("setreleasetimerobject",newreleasetimer(obj,releasetimer,function()
             obj("setreleasetimerobject",nil)
+            if cb then cb() end 
         end))
     else 
         obj("getreleasetimerobject")("set",releasetimer)
@@ -206,29 +216,34 @@ Tasksync.PepareLoop = function(duration,releasecb)
         local ontaskdelete = nil
         if not _fnondelete then 
             if releasecb then 
-                ontaskdelete = function(obj)
+                ontaskdelete = function()
                     releasecb(obj)
                 end 
             end
         else 
             if releasecb then 
-                ontaskdelete = function(obj)
+                ontaskdelete = function()
                     releasecb(obj)
                     _fnondelete(obj)
                 end 
             else 
-                ontaskdelete = _fnondelete
+                ontaskdelete = function()
+                    _fnondelete(obj)
+                end 
             end
         end
         obj = Tasksync.addloop(duration,_fn,ontaskdelete)
         return obj
     end
-    self.delete = function(self,duration)
+    self.delete = function(self,duration,cb)
+        local cb = type(duration) ~= "number" and duration or cb 
+        local duration = type(duration) == "number" and duration or nil
+    
         if obj then 
             if duration then 
-                Tasksync.setreleasetimer(obj,duration) 
+                Tasksync.setreleasetimer(obj,duration,cb) 
             else 
-                Tasksync.deleteloop(obj) 
+                Tasksync.deleteloop(obj,cb) 
             end 
         end
     end
@@ -244,18 +259,13 @@ Tasksync.PepareLoop = function(duration,releasecb)
 
     return setmetatable(self,{__call = function(self,...)
         return self:add(...)
+    end,__tostring = function()
+        return "This duration:"..self.get().."Total loop threads:"..totalthreads
     end})
 end
 end 
 
 PepareLoop = _M_.PepareLoop
-
-return PepareLoop(...)
-        ]===]
-)
-PepareLoop = PepareLoop or function(...)
-    return init(...)
-end
 ```
 
 ## Example 
